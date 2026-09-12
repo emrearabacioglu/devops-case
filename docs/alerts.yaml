@@ -1,0 +1,21 @@
+# docs/alerts.yaml
+groups:
+- name: devops-case-alerts
+  rules:
+  # 1. Kritik Olay: MongoDB Pod'unun Çökmesi
+  - alert: MongoDBDown
+    expr: absent(container_memory_usage_bytes{pod=~".*-mongodb-.*"})
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "MongoDB servisi 1 dakikadır yanıt vermiyor!"
+
+  # 2. Kritik Olay: Pod'ların CrashLoopBackOff (Sürekli Çökme) Döngüsüne Girmesi
+  - alert: PodCrashLooping
+    expr: rate(kube_pod_container_status_restarts_total[5m]) > 0
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Pod son 5 dakika içinde defalarca çöktü ve yeniden başlatıldı!"

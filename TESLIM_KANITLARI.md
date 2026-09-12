@@ -8,14 +8,14 @@ Ekran görüntülerinde gerçek credential, token, parola, private key veya hass
 
 ### 1.1 Ana sayfa
 
-- **Görsel:** `docs/screenshots/...`
-- **Açıklama:**
+- **Görsel:** `docs/screenshots/01-web-home.png`
+- **Açıklama:**AWS Ingress Load Balancer URL'si üzerinden MERN uygulamasına erişilmiş ve uygulamanın ana sayfası görüntülenmiştir.
 
 ### 1.2 Create işlemi
 
 - **Form görseli:** `docs/screenshots/...`
 - **Başarılı sonuç görseli:** `docs/screenshots/...`
-- **Açıklama:**
+- **Açıklama:** Arayüz üzerinden yeni bir kayıt oluşturulmuş ve Backend üzerinden MongoDB'ye başarılı bir şekilde yazılarak listeye düşmesi doğrulanmıştır.
 
 ### 1.3 Edit işlemi
 
