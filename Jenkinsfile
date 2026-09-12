@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     parameters {
-        choice(name: 'ENV_NAME', choices: ['dev', 'test', 'prod'], description: 'Hangi ortama kurulum yapilacak?')
+        choice(name: 'ENV_NAME', choices: ['dev', 'test', 'prod'], description: 'select environment?')
     }
     
     environment {
@@ -17,7 +17,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: 'https://github.com/emrearabacioglu/repo-adi.git'
+                git branch: 'main', url: 'https://github.com/emrearabacioglu/devops-case.git'
             }
         }
 
@@ -26,7 +26,7 @@ pipeline {
             parallel {
                 stage('Frontend Image') {
                     steps {
-                        withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                             sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                             sh "docker build -t ${APP_REPO}/devops_case-frontend:${IMAGE_TAG} ./mern-project/client"
                             sh "docker push ${APP_REPO}/devops_case-frontend:${IMAGE_TAG}"
@@ -35,7 +35,7 @@ pipeline {
                 }
                 stage('Backend Image') {
                     steps {
-                        withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                             sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                             sh "docker build -t ${APP_REPO}/devops_case-backend:${IMAGE_TAG} ./mern-project/server"
                             sh "docker push ${APP_REPO}/devops_case-backend:${IMAGE_TAG}"
@@ -44,7 +44,7 @@ pipeline {
                 }
                 stage('ETL Image') {
                     steps {
-                        withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                        withCredentials([usernamePassword(credentialsId: 'docker-hub-repo', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                             sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                             sh "docker build -t ${APP_REPO}/devops_case-etl:${IMAGE_TAG} ./python-project"
                             sh "docker push ${APP_REPO}/devops_case-etl:${IMAGE_TAG}"
@@ -66,7 +66,7 @@ pipeline {
             }
         }
 
-        stage('Deploy to EKS (Atomic)') {
+        stage('Deploy to EKS') {
             steps {
                 sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
                 
@@ -89,10 +89,10 @@ pipeline {
     
     post {
         success {
-            echo "CI/CD Pipeline basariyla tamamlandi. Uygulama ${params.ENV_NAME} ortaminda canliya alindi."
+            echo "CI/CD Pipeline finised successfully. App is live on ${params.ENV_NAME} environment."
         }
         failure {
-            echo "Pipeline HATA verdi! Lutfen Jenkins loglarini kontrol edin."
+            echo "Pipeline error! check Jenkins logs."
         }
     }
 }
