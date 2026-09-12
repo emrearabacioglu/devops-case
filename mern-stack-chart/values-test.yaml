@@ -1,0 +1,15 @@
+backend:
+  replicaCount: 2
+  image:
+    tag: v1.1.0-rc
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+
+frontend:
+  replicaCount: 2
+  image:
+    tag: v1.1.0-rc
+  service:
+    type: ClusterIP # Test ortamında dışarıdan erişim genellikle bir Ingress (Nginx vb.) ile sağlanır.

@@ -1,0 +1,36 @@
+mongodb:
+  replicaCount: 1
+  image:
+    repository: mongo
+    tag: latest
+  service:
+    port: 27017
+  resources: {}
+
+backend:
+  replicaCount: 1
+  image:
+    repository: emrearabacioglu/devops_case-backend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 5050
+  resources: {}
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: emrearabacioglu/devops_case-frontend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8080
+    nodePort: 30080
+  resources: {}
+
+etl:
+  image:
+    repository: emrearabacioglu/devops_case-etl
+    tag: latest
+  schedule: "0 * * * *"
+  resources: {}

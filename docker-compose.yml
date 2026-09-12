@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo
+    container_name: mongo-case
+    ports:
+      - "27017:27017"
+
+  backend:
+    build:
+      context: ./mern-project/server
+    container_name: backend-service
+    ports:
+      - "5050:5050"
+    environment:
+      - ATLAS_URI=mongodb://mongodb:27017
+    depends_on:
+      - mongodb
+
+  frontend:
+    build:
+      context: ./mern-project/client
+      args:
+        - REACT_APP_API_URL=http://localhost:5050
+    container_name: frontend-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+  etl:
+    build:
+      context: ./python-project
+    container_name: etl-service
+    environment:
+      - ATLAS_URI=mongodb://mongodb:27017
+    depends_on:
+      - mongodb

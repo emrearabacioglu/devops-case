@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-etl-hook
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      containers:
+      - name: etl
+        image: "{{ .Values.etl.image.repository }}:{{ .Values.etl.image.tag }}"
+        env:
+          - name: ATLAS_URI
+            value: "mongodb://{{ .Release.Name }}-mongodb:27017/devops"
+      restartPolicy: Never

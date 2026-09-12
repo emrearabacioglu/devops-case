@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-etl-job
+spec:
+  schedule: {{ .Values.etl.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: etl
+              image: "{{ .Values.etl.image.repository }}:{{ .Values.etl.image.tag }}"
+              env:
+                - name: ATLAS_URI
+                  value: "mongodb://{{ .Release.Name }}-mongodb:{{ .Values.mongodb.service.port }}"
+              {{- if .Values.etl.resources }}
+              resources:
+                {{- toYaml .Values.etl.resources | nindent 16 }}
+              {{- end }}
+          restartPolicy: OnFailure
