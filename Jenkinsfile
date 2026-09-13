@@ -23,9 +23,9 @@ pipeline {
         }
 
 
+
         stage('Cypress Test') {
             steps {
-                // Sadece veritabanı ve backend'i ayağa kaldırıyoruz. NGINX (frontend) imajını pas geçiyoruz.
                 sh 'docker compose up -d mongodb backend'
                 sh 'sleep 15'
                 
@@ -35,13 +35,14 @@ pipeline {
                     echo 'WORKDIR /app' >> Dockerfile.test
                     echo 'COPY . .' >> Dockerfile.test
                     echo 'RUN npm install' >> Dockerfile.test
-
-                    echo 'ENV REACT_APP_API_URL=http://localhost:5050' >> Dockerfile.test 
-
+                    
+                    echo 'ENV REACT_APP_API_URL=http://backend-service:5050' >> Dockerfile.test
+                    
                     echo 'ENTRYPOINT ["sh", "-c", "npm start & sleep 20 && npx cypress run"]' >> Dockerfile.test
                     
                     docker build -t temp-cypress-test -f Dockerfile.test .
-                    docker run --rm --network host temp-cypress-test
+                    
+                    docker run --rm --network devops_case_default temp-cypress-test
                     '''
                 }
             }
