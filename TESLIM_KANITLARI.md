@@ -21,20 +21,19 @@ Ekran görüntülerinde gerçek credential, token, parola, private key veya hass
 
 - **İşlem öncesi görsel:** `docs/screenshots/04-record-edit-before.png`
 - **İşlem sonrası görsel:** `docs/screenshots/05-record-edit-after.png`
-- **Açıklama:** 
+- **Açıklama:** Edit isleminin sorunsuz sekilde clsitigi gosterilmistir
 
 ## 2. Docker
 
 - **Image build ve çalışan container görseli:** `06-docker-build-and-containers.png`
-- **Açıklama:** Frontend(Nginx), Backend(Node), ETL(Python) ve MongoDB imajı `docker-compose` üzerinde ayağa kaldırılmıştır.
-                Docker ağı üzerinde service discovery sorunsuz çalışmış ve host üzerinden konteynere yapılan port mapping ile arayüz başarılı şekilde expose edilmiştirç Frontend'e browserdan erişim sağlanmıştır.
+- **Açıklama:** pipeline'dan ilgili kisimlar gosterilmistir
 
 ## 3. Kubernetes
 
 - **Pod/workload durumu:** `docs/screenshots/07-kubernetes-workloads.png`
 - **Service ve varsa Ingress durumu:** `docs/screenshots/08-kubernetes-services-ingress.png`
 - **ETL CronJob/Job durumu:** `docs/screenshots/09-etl-cronjob-job.png`
-- **Açıklama:**
+- **Açıklama:** ilgili ciktilar paylasilmistir
 
 ## 4. Python ETL
 
@@ -59,7 +58,7 @@ Aynı repository tekrar işlendiğinde duplicate kayıt oluşmadığını ve mev
 
 - **Başarılı pipeline görseli:** `docs/screenshots/12-cicd-pipeline-success.png`
 - **Build/image/deployment aşamalarını gösteren görsel:** `docs/screenshots/06-docker-build-and-containers.png`
-- **Açıklama:** 
+- **Açıklama:** basarici ci/cd gorseli
 
 ## 6. Backup ve Restore
 
@@ -67,38 +66,38 @@ Aşağıdaki altı adımın tamamı kanıtlanmalıdır. Adımların aynı kayıt
 
 ### 6.1 Kayıt oluşturma
 
-- **Görsel:** `docs/screenshots/...`
-- **Açıklama:**
+- **Görsel:** `docs/screenshots/13-backup-record-created.png`
+- **Açıklama:** Arayüzden `BackupTest` kaydı oluşturuldu ve Record List sayfasında görüntülendi.
 
 ### 6.2 Yedek alma
 
-- **Görsel veya terminal çıktısı:** `docs/screenshots/...`
-- **Kullanılan yöntem ve komut:**
-- **Yedeğin saklandığı konum:**
-- **Açıklama:**
+- **Görsel veya terminal çıktısı:** `docs/screenshots/14-backup-taken.png`
+- **Kullanılan yöntem ve komut:** `./scripts/mongo-backup.sh` (`mongodump --archive --gzip`)
+- **Yedeğin saklandığı konum:** `backups/mongodb-<timestamp>.archive.gz`; zamanlanmış yedekler `mongodb-backup` PVC'sinde.
+- **Açıklama:** Yedek dosyasının yolu, boyutu ve 7 günlük retention uygulaması çıktıda görülmektedir.
 
 ### 6.3 Collection veya veritabanının silinmesi
 
-- **Görsel veya terminal çıktısı:** `docs/screenshots/...`
-- **Açıklama:**
+- **Görsel veya terminal çıktısı:** `docs/screenshots/15-collection-dropped.png`
+- **Açıklama:** `sample_training.records` collection'ı `drop()` ile silindi.
 
 ### 6.4 Verinin kaybolduğunun gösterilmesi
 
-- **Arayüz görseli:** `docs/screenshots/...`
-- **Veritabanı çıktısı:** `docs/screenshots/...`
-- **Açıklama:**
+- **Arayüz görseli:** `docs/screenshots/16-data-missing-after-drop.png`
+- **Veritabanı çıktısı:** `docs/screenshots/16-data-missing-after-drop.png`
+- **Açıklama:** Veritabanında `records count: 0`, arayüzde boş tablo görülmektedir.
 
 ### 6.5 Yedekten geri yükleme
 
-- **Görsel veya terminal çıktısı:** `docs/screenshots/...`
-- **Ölçülen geri yükleme süresi:**
-- **Açıklama:**
+- **Görsel veya terminal çıktısı:** `docs/screenshots/17-restore-executed.png`
+- **Ölçülen geri yükleme süresi:** 0m1.490s
+- **Açıklama:** `./scripts/mongo-restore.sh` ile `mongorestore --archive --gzip --drop` çalıştırıldı.
 
 ### 6.6 Verinin geri geldiğinin doğrulanması
 
-- **Arayüz görseli:** `docs/screenshots/...`
-- **Veritabanı çıktısı:** `docs/screenshots/...`
-- **Açıklama:**
+- **Arayüz görseli:** `docs/screenshots/18-data-restored-verified.png`
+- **Veritabanı çıktısı:** `docs/screenshots/18-data-restored-verified.png`
+- **Açıklama:** Kayıt sayısı eski değerine döndü, `BackupTest` kaydı arayüzde tekrar görüntülendi.
 
 > Runbook, RPO/RTO hedefleri ve retention süresi `docs/backup-restore.md` içinde dokümante edilmelidir.
 
@@ -111,5 +110,5 @@ Uyguladığınız logging, monitoring, alarm, Helm, Terraform, güvenlik taramas
 
 ## 8. Ek Kanıtlar
 
-- **Görsel:** `docs/screenshots/...`
+- **Görsel:** `docs/screenshots/`
 - **Açıklama:**

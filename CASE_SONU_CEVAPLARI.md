@@ -27,14 +27,17 @@ Ayrıca sistem bileşenlerini, bileşenler arasındaki bağlantıları, trafik a
 Diyagram Mermaid, Draw.io, Excalidraw veya benzeri bir araçla hazırlanabilir. Düzenlenebilir kaynak dosyasının da repoya eklenmesi beklenmektedir.
 
 **Cevap:**
-Altyapı IaC prensibiyle AWS üzerinde Terraform yerel modülleri (`vpc`, `eks`) kullanarak izole bir ortam olarak kurulmuştur. İstek akışı şu şekildedir:
-1. Kullanıcı tarayıcı üzerinden AWS Application Load Balancer'a HTTP isteği atar.
-2. Trafik EKS içindeki NGINX Ingress Controller'a ulaşır. 
-3. Ingress, path-based routing ile root `/` isteklerini frontend podlarına, `/record` ve `/healthcheck` isteklerini backend podlarına yönlendirir. 
-4. Backend podları veritabanı işlemleri için dışarıya tamamen kapalı olan MongoDB poduyla ClusterIP üzerinden haberleşir. 
-5. Python ETL, CronJob nesnesi olarak çalışıp dışarıdan GitHub API'sini sorgular ve çektiği verileri doğrudan MongoDB'ye yazar.
+Altyapı IaC prensibiyle AWS üzerinde Terraform yerel modülleri (`vpc`, `eks`) kullanılarak izole bir ortam olarak kurulmuştur. İstek akışı şu şekildedir:
 
-*(Mimari diyagram proje reposunda `docs/architecture.md` / `docs/architecture.pdf` içerisinde sunulmuştur).*
+1. Kullanıcı tarayıcı üzerinden, NGINX Ingress Controller'ın `LoadBalancer` tipindeki Service'i tarafından otomatik provision edilen AWS Elastic Load Balancer'a (Classic LB) HTTP isteği gönderir.
+2. Trafik EKS içindeki NGINX Ingress Controller pod'larına ulaşır.
+3. Ingress, path-based routing ile `/` isteklerini frontend pod'larına, `/record` ve `/healthcheck` isteklerini backend pod'larına yönlendirir.
+4. Backend pod'ları veritabanı işlemleri için, küme dışına kapalı olan MongoDB ile ClusterIP Service üzerinden haberleşir. MongoDB verisi gp2 EBS diski üzerinde PersistentVolumeClaim ile kalıcı tutulur.
+5. Python ETL, CronJob olarak saatte bir çalışır; NAT Gateway üzerinden GitHub API'sini sorgular ve çektiği veriyi doğrudan MongoDB'ye yazar.
+
+Kümeye dış erişim yalnızca ELB üzerindendir; frontend, backend ve MongoDB Service'lerinin tamamı ClusterIP tipindedir. Dağıtım Jenkins pipeline'ı üzerinden Helm ile yapılır; imajlar Docker Hub'dan çekilir.
+
+*(Mimari diyagram `docs/architecture.md` içerisinde Mermaid formatında sunulmuştur; dosyanın kendisi düzenlenebilir kaynaktır.)*
 
 ---
 
@@ -220,7 +223,15 @@ Yedeğin bozuk veya eksik olmasına karşı hangi doğrulamayı yaparsınız; ge
 
 Runbook’unuzu `docs/backup-restore.md` içinde paylaşın ve kanıtları `TESLIM_KANITLARI.md` dosyasından referanslayın.
 
-**Cevap:**Yedekleme yöntemi olarak Kubernetes içinde çalıştırılan `mongodump` ve `mongorestore` araçları ile manuel arşiv (BSON/JSON) yedeği alınması yöntemi kullanılmıştır. Detaylı RTO, RPO hedefleri ve çalıştırma adımları `docs/backup-restore.md` dosyasında sunulmuştur. Kanıtları `TESLIM_KANITLARI.md` içinde belgelenmiştir. Gerçek bir production ortamında bu manuel yöntem yerine snapshot tabanlı EBS yedeklemesi kullanılarak cluster bazlı felaket kurtarma (DR) stratejisi oluşturulabilirdi.
+**Cevap:**
+
+MongoDB yedeklemesi için `mongodump` aracıyla tek dosyalık sıkıştırılmış arşiv (`--archive --gzip`) yöntemi seçilmiştir. Yedekler iki şekilde alınır: `scripts/mongo-backup.sh` ile manuel, `k8s/backup/mongodb-backup-cronjob.yaml` ile her gün 02:00'de otomatik. Manuel yedekler operatör makinesindeki `backups/` dizininde, zamanlanmış yedekler `dev` namespace'indeki `mongodb-backup` PersistentVolumeClaim üzerinde saklanır.
+
+Yedekleme sıklığı günlük, retention süresi 7 gündür. RPO hedefi 24 saat, RTO hedefi 15 dakikadır. Uçtan uca senaryoda ölçülen gerçek geri yükleme süresi **0m1.490s** olmuştur (yedek boyutu 4.0K); mevcut veri hacminin küçük olması nedeniyle hedefin belirgin şekilde altında kalmıştır.
+
+Yedeğin bütünlüğü geri yükleme öncesinde `mongorestore --dryRun` ile, sonrasında `countDocuments()` sonucunun karşılaştırılması ve arayüzde kayıtların doğrulanmasıyla kontrol edilir. Production ortamında yedekler küme dışına, versiyonlama ve object-lock etkin bir S3 bucket'ına aktarılır; RPO oplog yedeği veya yönetilen bir servisle dakikalar seviyesine çekilir ve restore doğrulaması günlük çalışan bir Job ile otomatikleştirilir.
+
+Runbook `docs/backup-restore.md` dosyasındadır. Kanıtlar `TESLIM_KANITLARI.md` içinde 13-18 numaralı ekran görüntüleri olarak referanslanmıştır.
 
 ---
 
