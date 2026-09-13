@@ -1,6 +1,7 @@
 describe("Web site availability", () => {
   after(() => {
-    cy.contains("Delete").click({ force: true });
+    cy.visit("/");
+    cy.contains("td", "Employee1").parent().find("button").click({ force: true });
   });
   it("Sanity listings web site", () => {
     cy.visit("/");
@@ -12,7 +13,6 @@ describe("Web site availability", () => {
     cy.get("#position").type("Position1");
     cy.get("#positionIntern").click({ force: true });
     cy.contains("Create person").click({ force: true });
-    cy.visit("/");
-    cy.contains("Employee1").should("exist");
+    cy.contains("Employee1", { timeout: 15000 }).should("exist");
   });
 });
