@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     parameters {
-        choice(name: 'ENV_NAME', choices: ['dev', 'test', 'prod'], description: 'select environment?')
+        choice(name: 'ENV_NAME', choices: ['dev', 'test', 'prod'], description: 'select environment')
     }
     
     environment {
@@ -19,6 +19,22 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/emrearabacioglu/devops-case.git'
+            }
+        }
+
+        stage('Cypress Test)') {
+            steps {
+                sh 'docker-compose up -d --build'
+                sh 'sleep 20'
+                
+                dir('mern-project/client') {
+                    sh "docker run --rm --network host -v \${PWD}:/app -w /app cypress/included:12.12.0 sh -c 'npm install && npx cypress run'"
+                }
+            }
+            post {
+                always {
+                    sh 'docker-compose down -v'
+                }
             }
         }
 
