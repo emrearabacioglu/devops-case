@@ -22,9 +22,9 @@ pipeline {
             }
         }
 
-        stage('Cypress Test)') {
+        stage('Cypress Test') {
             steps {
-                sh 'docker-compose up -d --build'
+                sh 'docker compose up -d --build'
                 sh 'sleep 20'
                 
                 dir('mern-project/client') {
@@ -33,7 +33,7 @@ pipeline {
             }
             post {
                 always {
-                    sh 'docker-compose down -v'
+                    sh 'docker compose down -v'
                 }
             }
         }
