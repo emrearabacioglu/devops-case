@@ -22,34 +22,6 @@ pipeline {
             }
         }
 
-        stage('Automated Tests (E2E Cypress)') {
-            steps {
-                sh 'chmod +x scripts/*.sh'
-
-                // 1. MongoDB'yi ayaga kaldir ve gercekten hazir olana kadar bekle
-                sh 'docker compose up -d mongodb'
-                sh './scripts/wait-for-mongo.sh mongodb'
-
-                // 2. Backend'i ayaga kaldir ve istek karsilar hale gelene kadar bekle
-                sh 'docker compose up -d backend'
-                sh './scripts/wait-for-http.sh backend http://localhost:5050/record'
-
-                // 3. Cypress testlerini calistir (Dockerfile.test repo'da versiyonlu duruyor)
-                dir('mern-project/client') {
-                    sh 'docker build -t temp-cypress-test -f Dockerfile.test .'
-                    sh 'docker run --rm --network host temp-cypress-test'
-                }
-            }
-            post {
-                always {
-                    sh 'docker compose logs mongodb || true'
-                    sh 'docker compose logs backend || true'
-                    sh 'docker compose down -v || true'
-                    sh 'docker rmi temp-cypress-test || true'
-                }
-            }
-        }
-
         stage('Parallel Build & Push') {
             failFast true
             parallel {

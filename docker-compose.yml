@@ -1,29 +1,22 @@
+version: '3.8'
+
 services:
   mongodb:
     image: mongo
     container_name: mongo-case
     ports:
       - "27017:27017"
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
 
   backend:
     build:
       context: ./mern-project/server
     container_name: backend-service
-    restart: on-failure
     ports:
       - "5050:5050"
-      - "5000:5050"
     environment:
       - ATLAS_URI=mongodb://mongodb:27017
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
 
   frontend:
     build:
@@ -32,19 +25,15 @@ services:
         - REACT_APP_API_URL=http://localhost:5050
     container_name: frontend-service
     ports:
-      - "3000:8080"
+      - "8080:8080"
     depends_on:
       - backend
-    command: >
-      /bin/sh -c "echo 'server { listen 8080; location / { root /usr/share/nginx/html; index index.html index.htm; try_files $$uri $$uri/ /index.html; } location /record { proxy_pass http://backend:5050; } }' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
   etl:
     build:
       context: ./python-project
     container_name: etl-service
-    restart: on-failure
     environment:
       - ATLAS_URI=mongodb://mongodb:27017
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
