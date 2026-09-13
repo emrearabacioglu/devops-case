@@ -129,7 +129,7 @@ pipeline {
                     archiveArtifacts artifacts: 'cypress-results/**', allowEmptyArchive: true
                 }
                 failure {
-                    sh "helm rollback mern-${params.ENV_NAME} -n ${params.ENV_NAME} --wait --timeout 5m || echo 'rollback skipped'"
+                    sh "helm rollback mern-${params.ENV_NAME} -n ${params.ENV_NAME} --wait --timeout 10m || echo 'rollback skipped'"
                 }
             }
         }

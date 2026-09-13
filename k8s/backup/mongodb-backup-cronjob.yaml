@@ -5,6 +5,7 @@ metadata:
   namespace: dev
 spec:
   accessModes: ["ReadWriteOnce"]
+  storageClassName: gp2
   resources:
     requests:
       storage: 5Gi
@@ -15,7 +16,7 @@ metadata:
   name: mongodb-backup
   namespace: dev
 spec:
-  schedule: "0 2 * * *"          # her gun 02:00
+  schedule: "0 2 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
