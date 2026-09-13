@@ -43,6 +43,7 @@ pipeline {
             post {
                 always {
                     sh 'docker compose down -v'
+                    sh 'docker rmi temp-cypress-test || true'
                 }
             }
         }
