@@ -24,68 +24,26 @@ pipeline {
 
         stage('Automated Tests (E2E Cypress)') {
             steps {
-                // 1. MongoDB'yi ayağa kaldır
+                sh 'chmod +x scripts/*.sh'
+
+                // 1. MongoDB'yi ayaga kaldir ve gercekten hazir olana kadar bekle
                 sh 'docker compose up -d mongodb'
- 
-                // 2. sleep yerine gerçek hazır-olma kontrolü: Mongo ping cevap verene kadar bekle
-                sh '''
-                echo "MongoDB hazir olmasi bekleniyor..."
-                for i in $(seq 1 30); do
-                  if docker compose exec -T mongodb mongosh --quiet --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
-                    echo "MongoDB hazir."
-                    break
-                  fi
-                  echo "MongoDB bekleniyor ($i/30)..."
-                  sleep 2
-                done
-                '''
- 
-                // 3. MongoDB hazır olduktan sonra Backend'i kaldır
+                sh './scripts/wait-for-mongo.sh mongodb'
+
+                // 2. Backend'i ayaga kaldir ve istek karsilar hale gelene kadar bekle
                 sh 'docker compose up -d backend'
- 
-                // 4. sleep yerine: backend gercekten istek cevaplayana kadar bekle
-                //    NOT: /record kendi API'nizdeki gercek list/health endpoint'i ile
-                //    ayni degilse burayi kendi endpoint'inize gore guncelleyin.
-                sh '''
-                echo "Backend hazir olmasi bekleniyor..."
-                for i in $(seq 1 30); do
-                  if curl -sf http://localhost:5050/record > /dev/null; then
-                    echo "Backend hazir."
-                    break
-                  fi
-                  echo "Backend bekleniyor ($i/30)..."
-                  sleep 2
-                done
-                '''
- 
+                sh './scripts/wait-for-http.sh http://localhost:5050/record'
+
+                // 3. Cypress testlerini calistir (Dockerfile.test repo'da versiyonlu duruyor)
                 dir('mern-project/client') {
-                    sh '''
-                    cat > Dockerfile.test << 'EOF'
-                    FROM cypress/included:12.12.0
-                    WORKDIR /app
-                    COPY . .
-                    RUN npm install && npm install --no-save wait-on
- 
-                    # Cypress tarayicisinin Backend'i bulabilmesi icin adresi localhost yapiyoruz
-                    ENV REACT_APP_API_URL=http://localhost:5050
- 
-                    # sleep 20 yerine: React dev server gercekten ayaga kalkana kadar bekle (wait-on)
-                    ENTRYPOINT ["sh", "-c", "npm start & npx wait-on http://localhost:3000 -t 60000 && npx cypress run"]
-                    EOF
- 
-                    docker build -t temp-cypress-test -f Dockerfile.test .
- 
-                    # Host agi kullanilarak localhost:5050'nin Jenkins uzerinden dogrudan Backend'e ulasmasi garanti ediliyor
-                    docker run --rm --network host temp-cypress-test
-                    '''
+                    sh 'docker build -t temp-cypress-test -f Dockerfile.test .'
+                    sh 'docker run --rm --network host temp-cypress-test'
                 }
             }
             post {
                 always {
-                    // Basarisizlik durumunda kok nedeni gormek icin loglari yakala
                     sh 'docker compose logs mongodb || true'
                     sh 'docker compose logs backend || true'
-                    sh 'docker compose ps || true'
                     sh 'docker compose down -v || true'
                     sh 'docker rmi temp-cypress-test || true'
                 }

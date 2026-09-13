@@ -1,0 +1,13 @@
+FROM cypress/included:12.12.0
+WORKDIR /app
+COPY . .
+RUN npm install && npm install --no-save wait-on
+
+# Cypress tarayicisinin backend'e "localhost" uzerinden ulasabilmesi icin;
+# container --network host ile calistirilir (bkz. Jenkinsfile).
+ENV REACT_APP_API_URL=http://localhost:5050
+
+# React dev server (npm start) gercekten ayaga kalkip istek karsilar hale
+# gelene kadar bekle (wait-on), ardindan Cypress'i calistir. Sabit "sleep"
+# yerine gercek hazir-olma kontrolu.
+ENTRYPOINT ["sh", "-c", "npm start & npx wait-on http://localhost:3000 -t 60000 && npx cypress run"]
