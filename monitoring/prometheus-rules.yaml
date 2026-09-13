@@ -1,0 +1,49 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devops-case-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  groups:
+    - name: devops-case.rules
+      rules:
+
+        - alert: BackendUnavailable
+          expr: kube_deployment_status_replicas_available{deployment=~".*-backend"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Backend deployment has no available replica"
+            description: "Backend 2 dakikadir 0 hazir replikaya sahip; kullanici istekleri 502 aliyor."
+
+        - alert: MongoDBUnavailable
+          expr: |
+            max(kube_pod_status_ready{condition="true", pod=~".*-mongodb-.*"}) == 0
+            or absent(kube_pod_status_ready{condition="true", pod=~".*-mongodb-.*"})
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "MongoDB pod is not ready"
+            description: "MongoDB 2 dakikadir Ready degil; tum CRUD akisi ve ETL durur."
+
+        - alert: ETLJobFailed
+          expr: kube_job_status_failed{job_name=~".*-etl-job-.*"} > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ETL CronJob run failed"
+            description: "ETL Job'i hata ile bitti; GitHub repo verisi guncellenmiyor."
+
+        - alert: ETLNoSuccessfulRun
+          expr: time() - max(kube_job_status_completion_time{job_name=~".*-etl-job-.*"}) > 7200
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "ETL has not completed successfully for 2 hours"
+            description: "ETL saatlik calismali; son basarili tamamlanma 2 saatten eski."

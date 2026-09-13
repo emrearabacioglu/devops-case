@@ -55,7 +55,11 @@ Başlangıç projelerinde tespit ettiğiniz en kritik üç sorun neydi? Bu sorun
 
 Hangi sorunları bilinçli olarak düzeltmediniz veya kapsam dışında bıraktınız? Bu kararların gerekçelerini açıklayın.
 
-**Cevap:**Zaman ve kaynak kısıtları nedeniyle MongoDB için Replica Set (High Availability) mimarisi ve kalıcı depolama (AWS EBS - Persistent Volume) yapılandırması kapsam dışında bırakılıp stateless deployment olarak çalıştırılmıştır. Ingress üzerinde AWS Certificate Manager kullanılarak HTTPS yapılandırması custom domain kısıtları nedeniyle es geçilmiştir. Podlar arası iletişimi kısıtlayan detaylı NetworkPolicy kuralları yazılmamıştır.
+**Cevap:**Zaman ve kaynak kısıtları nedeniyle MongoDB için Replica Set (High Availability) mimarisi ve kalıcı depolama (AWS EBS - Persistent Volume) yapılandırması kapsam dışında bırakılıp stateless deployment olarak çalıştırılmıştır. 
+Ingress üzerinde AWS Certificate Manager kullanılarak HTTPS yapılandırması custom domain kısıtları nedeniyle es geçilmiştir. 
+Podlar arası iletişimi kısıtlayan detaylı NetworkPolicy kuralları yazılmamıştır.
+Helmchartlarda oluşturulan farklı env configleri pipeline'da manuel input yöntemiyle kullanılmıştır, gerçek senaryoda her environment için ayrı repo/branch olacağından, projenin bütün halde rahatça görünebilmesi amacıyla bu yöntem kullanılmamıştır
+Terraform dosyaları için, projenin bütün halde görünebilirliğini bozmamak amacıyla ayrı repo kullanılmamıştır.
 
 ---
 
@@ -87,7 +91,7 @@ Düz Kubernetes manifestleri veya Kustomize gibi alternatiflerle karşılaştır
 
 Helm kullanmadıysanız tercih ettiğiniz yöntemi ve seçim gerekçenizi açıklayın.
 
-**Cevap:** Projede kubernetes nesnelerini yönetmek için Helm kullanılmıştır. Helm'in çözdüğü temel problemö ortam (dev, test, prod) parametrelerinin ve Jenkins pipeline'ında dinamik üretilen image etiketlerinin (`${BUILD_NUMBER}`) tek bir `values.yaml` dosyası üzerinden `--set` komutuyla koda manuel dokunmadan override edilebilmesidir. Ayrıca `--atomic` parametresiyle hatalı sürümlerde rollback işlemlerini otomatikleştirir. Düz manifestlere göre dezavantajı Go Template syntaxını öğrenme ve yönetme karmaşıklığıdır.
+**Cevap:** Projede kubernetes nesnelerini yönetmek için Helm kullanılmıştır. Helm'in çözdüğü temel problemö ortam (dev, test, prod) parametrelerinin ve Jenkins pipeline'ında dinamik üretilen image etiketlerinin (`${BUILD_NUMBER}`) tek bir `values.yaml` dosyası üzerinden `--set` komutuyla koda manuel dokunmadan override edilebilmesidir. Ayrıca `--atomic` parametresiyle hatalı sürümlerde rollback işlemlerini otomatikleştirir.
 
 ---
 
@@ -221,4 +225,4 @@ Runbook’unuzu `docs/backup-restore.md` içinde paylaşın ve kanıtları `TESL
 
 Case kapsamında özellikle belirtmek istediğiniz ek kararlar, sınırlamalar veya sonraki geliştirme adımları varsa bu bölümde açıklayabilirsiniz.
 
-**Cevap:**Projede altyapı kodlaması (IaC) için AWS üzerinde Terraform yerel modülleri (vpc, eks) kullanılmış, yapı environment bazlı (dev/test/prod) kurulabilir hale getirilmiştir. CI/CD pipeline'ında Parallel Build özelliğiyle Docker imaj derleme süreleri optimize edilmiş, Helm ile tek bir parametre (`ENV_NAME`) üzerinden altyapı ve kod dağıtımı tam senkronize edilerek sıfır kesintili (Atomic deployment) bir akış yaratılmıştır. Jenkinsfile'da Hardcoded AWS Key'ler yerine Jenkins Credentials mekanizması ile güvenlik artırılmış, Terraform State dosyası AWS S3'e taşınarak state bütünlüğü sağlanmıştır.
+**Cevap:**Projede altyapı kodlaması (IaC) için AWS üzerinde Terraform yerel modülleri (vpc, eks) kullanılmış, yapı environment bazlı (dev/test/prod) kurulabilir hale getirilmiştir. CI/CD pipeline'ında Parallel Build özelliğiyle Docker imaj derleme süreleri optimize edilmiş, Helm ile tek bir parametre (`ENV_NAME`) üzerinden altyapı ve kod dağıtımı tam senkronize edilerek sıfır kesintili bir akış yaratılmıştır. Jenkinsfile'da Hardcoded AWS Key'ler yerine Jenkins Credentials mekanizması ile güvenlik artırılmış, Terraform State dosyası AWS S3'e taşınarak state bütünlüğü sağlanmıştır.

@@ -14,13 +14,13 @@ Ekran görüntülerinde gerçek credential, token, parola, private key veya hass
 ### 1.2 Create işlemi
 
 - **Form görseli:** `docs/screenshots/...`
-- **Başarılı sonuç görseli:** `docs/screenshots/...`
+- **Başarılı sonuç görseli:** `docs/screenshots/02-record-create-form.png`
 - **Açıklama:** Arayüz üzerinden yeni bir kayıt oluşturulmuş ve Backend üzerinden MongoDB'ye başarılı bir şekilde yazılarak listeye düşmesi doğrulanmıştır.
 
 ### 1.3 Edit işlemi
 
-- **İşlem öncesi görsel:** `docs/screenshots/...`
-- **İşlem sonrası görsel:** `docs/screenshots/...`
+- **İşlem öncesi görsel:** `docs/screenshots/04-record-edit-before.png`
+- **İşlem sonrası görsel:** `docs/screenshots/05-record-edit-after.png`
 - **Açıklama:** 
 
 ## 2. Docker
@@ -31,9 +31,9 @@ Ekran görüntülerinde gerçek credential, token, parola, private key veya hass
 
 ## 3. Kubernetes
 
-- **Pod/workload durumu:** `docs/screenshots/...`
-- **Service ve varsa Ingress durumu:** `docs/screenshots/...`
-- **ETL CronJob/Job durumu:** `docs/screenshots/...`
+- **Pod/workload durumu:** `docs/screenshots/07-kubernetes-workloads.png`
+- **Service ve varsa Ingress durumu:** `docs/screenshots/08-kubernetes-services-ingress.png`
+- **ETL CronJob/Job durumu:** `docs/screenshots/09-etl-cronjob-job.png`
 - **Açıklama:**
 
 ## 4. Python ETL
@@ -53,11 +53,11 @@ Aynı repository tekrar işlendiğinde duplicate kayıt oluşmadığını ve mev
 - Öncesi (Manuel Değişiklik): `docs/screenshots/11-etl-update-without-duplicate-1.png`
 - Sonrası (Güncelleme ve Terminal Logu): `docs/screenshots/11-etl-update-without-duplicate-2.png`
 - **Kullanılan benzersiz alan:** github_id
-- **Açıklama:** docs/screenshots/11-etl-update-without-duplicate-2.png
+- **Açıklama:** lokal ortamda kurulan yapi mongoexpress arayzuunden ve terminal ciktisindan dogrulandi
 
 ## 5. CI/CD
 
-- **Başarılı pipeline görseli:** `docs/screenshots/...`
+- **Başarılı pipeline görseli:** `docs/screenshots/12-cicd-pipeline-success.png`
 - **Build/image/deployment aşamalarını gösteren görsel:** `docs/screenshots/...`
 - **Açıklama:** 
 

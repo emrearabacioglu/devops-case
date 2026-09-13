@@ -32,7 +32,7 @@ describe("Web site availability", () => {
       expect(records.map((r) => r.name)).to.include("Employee1");
     });
 
-    // Kayit listesi "/" altinda degil, navbar'daki Record List sayfasinda
+    // Record list "/" altinda degil, navbar'daki Record List sayfasinda
     cy.contains("a", "Record List").click();
     cy.contains("td", "Employee1", { timeout: 20000 }).should("exist");
   });
