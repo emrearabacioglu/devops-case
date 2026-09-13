@@ -5,7 +5,7 @@ COPY . .
 # wait-on@9.x resmi olarak Node >=20 istiyor, bu image Node 18 kullaniyor.
 # Node 18 ile uyumlu bir surume sabitliyoruz (EBADENGINE uyarisini ve olasi
 # tutarsiz davranisi ortadan kaldirir).
-RUN npm install && npm install --no-save wait-on@7
+RUN npm install && npm install --no-save wait-on@7 cypress@12.12.0
 
 # Cypress tarayicisinin backend'e ulasabilmesi icin.
 # ONEMLI: "localhost" yerine "127.0.0.1" kullaniyoruz. Docker + Node.js'te

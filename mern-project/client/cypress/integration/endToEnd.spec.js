@@ -7,8 +7,7 @@ describe("Web site availability", () => {
     cy.contains("Create Record").should("exist");
   });
   it("Test Adding Employee listings", () => {
-    cy.server();
-    cy.route("POST", "**/record*").as("createRecord");
+    cy.intercept("POST", "**/record*").as("createRecord");
 
     cy.visit("http://localhost:3000/create");
     cy.get("#name").type("Employee1");
@@ -16,9 +15,9 @@ describe("Web site availability", () => {
     cy.get("#positionIntern").click({ force: true });
     cy.contains("Create person").click({ force: true });
 
-    cy.wait("@createRecord", { timeout: 15000 }).then((xhr) => {
-      cy.log("POST status: " + xhr.status);
-      cy.log("POST body: " + JSON.stringify(xhr.responseBody));
+    cy.wait("@createRecord", { timeout: 15000 }).then((interception) => {
+      cy.log("POST status: " + interception.response?.statusCode);
+      cy.log("POST body: " + JSON.stringify(interception.response?.body));
     });
 
     cy.visit("http://localhost:3000");
