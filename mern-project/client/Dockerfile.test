@@ -5,7 +5,14 @@ COPY . .
 # wait-on@9.x resmi olarak Node >=20 istiyor, bu image Node 18 kullaniyor.
 # Node 18 ile uyumlu bir surume sabitliyoruz (EBADENGINE uyarisini ve olasi
 # tutarsiz davranisi ortadan kaldirir).
-RUN npm install && npm install --no-save wait-on@7 cypress@12.12.0
+RUN npm install && npm install --no-save wait-on@7
+
+# Proje Cypress 9 formatinda (cypress.json) kalmis; Cypress 12 bunu artik
+# desteklemiyor ve interaktif migration istiyor (CI'da imkansiz). Bunu
+# sadece bu test image'i icinde (repo dosyalarina dokunmadan) duzeltiyoruz:
+# eski dosyayi kaldirip, ayni spec konumunu gosteren modern bir config koyuyoruz.
+RUN rm -f cypress.json
+RUN printf 'const { defineConfig } = require("cypress")\n\nmodule.exports = defineConfig({\n  e2e: {\n    specPattern: "cypress/integration/**/*.spec.js",\n    supportFile: false,\n  },\n})\n' > cypress.config.js
 
 # Cypress tarayicisinin backend'e ulasabilmesi icin.
 # ONEMLI: "localhost" yerine "127.0.0.1" kullaniyoruz. Docker + Node.js'te
@@ -17,4 +24,4 @@ ENV REACT_APP_API_URL=http://127.0.0.1:5050
 
 # React dev server gercekten ayaga kalkip istek karsilar hale gelene kadar
 # bekle (wait-on), ardindan Cypress'i calistir.
-ENTRYPOINT ["sh", "-c", "npm start & npx wait-on http://127.0.0.1:3000 -t 60000 --verbose && npx cypress run"]
+ENTRYPOINT ["sh", "-c", "npm start & npx wait-on http://127.0.0.1:3000 -t 90000 --verbose && cypress run"]
