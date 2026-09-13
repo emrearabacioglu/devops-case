@@ -87,33 +87,45 @@ pipeline {
             }
         }
 
-        stage('Automated Tests (E2E Cypress)') {
+        stage('E2E Test (Cypress)') {
             steps {
                 script {
-                    // 1. EKS'teki AWS Ingress Controllerı test için  Jenkinsin 3000 portuna tünelledik
-                    sh 'kubectl port-forward -n ingress-basic svc/ingress-nginx-controller 3000:80 > /dev/null 2>&1 & echo $! > pf.pid'
-                    sh 'sleep 10'
-                    
-                    dir('mern-project/client') {
-                        // 2. Cypress, K8s üzerindeki canlı Ingress sistemini test eder
-                        sh '''
-                        echo 'FROM cypress/included:12.12.0' > Dockerfile.test
-                        echo 'ENV REACT_APP_API_URL=http://localhost:5050' >> Dockerfile.test
-                        echo 'WORKDIR /app' >> Dockerfile.test
-                        echo 'COPY . .' >> Dockerfile.test
-                        echo 'RUN npm install' >> Dockerfile.test
-                        echo 'ENTRYPOINT ["sh", "-c", "CI=true BROWSER=none npm run start & sleep 10 && npx update-browserslist-db@latest && npx cypress run"]' >> Dockerfile.test
-                        docker build -t temp-cypress-test -f Dockerfile.test .
-                        docker run --rm --network host temp-cypress-test
-                        '''
-                    }
+                    env.APP_URL = sh(
+                        script: "kubectl get svc ingress-nginx-controller -n ingress-basic -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'",
+                        returnStdout: true
+                    ).trim()
+                    echo "E2E target: http://${env.APP_URL}"
                 }
+
+                sh """
+                    echo "Waiting for LoadBalancer DNS propagation..."
+                    for i in \$(seq 1 40); do
+                      if curl -sfo /dev/null --max-time 5 http://${env.APP_URL}/ ; then
+                        echo "Application is reachable."; exit 0
+                      fi
+                      echo "attempt \$i - not ready yet"; sleep 15
+                    done
+                    echo "Application did not become reachable in time."; exit 1
+                """
+
+                sh """
+                    docker run --rm --ipc=host \\
+                      -v "${env.WORKSPACE}/mern-project/client":/e2e \\
+                      -w /e2e \\
+                      -e CYPRESS_baseUrl=http://${env.APP_URL} \\
+                      cypress/included:4.12.1
+                """
             }
             post {
                 always {
-                    // 3. Test bittiğinde K8s port-forward tünelini kapat ve geçici imajı sil
-                    sh 'kill $(cat pf.pid) || true'
-                    sh 'docker rmi temp-cypress-test || true'
+                    sh """
+                        docker run --rm -v "${env.WORKSPACE}":/w alpine:3.20 \\
+                          chown -R \$(id -u):\$(id -g) /w/mern-project/client || true
+                    """
+                    archiveArtifacts artifacts: 'mern-project/client/cypress/videos/**, mern-project/client/cypress/screenshots/**', allowEmptyArchive: true
+                }
+                failure {
+                    sh "helm rollback mern-${params.ENV_NAME} -n ${params.ENV_NAME} --wait --timeout 5m || echo 'rollback skipped'"
                 }
             }
         }

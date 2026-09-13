@@ -3,4 +3,5 @@ build
 .env
 .git
 Dockerfile
-.dockerignore
+.dockerignorecypress
+cypress.json
