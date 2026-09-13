@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-backup
+  namespace: dev
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-backup
+  namespace: dev
+spec:
+  schedule: "0 2 * * *"          # her gun 02:00
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: mongodump
+              image: mongo:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  TS=$(date +%Y%m%d-%H%M%S)
+                  echo "[backup] starting dump at ${TS}"
+                  mongodump --host mern-dev-mongodb --port 27017 \
+                            --archive="/backup/mongodb-${TS}.archive.gz" --gzip
+                  echo "[backup] created /backup/mongodb-${TS}.archive.gz"
+                  echo "[backup] applying 7-day retention"
+                  find /backup -name 'mongodb-*.archive.gz' -mtime +7 -print -delete
+                  ls -lh /backup
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: mongodb-backup

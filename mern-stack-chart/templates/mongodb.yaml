@@ -32,3 +32,14 @@ spec:
           resources:
             {{- toYaml .Values.mongodb.resources | nindent 12 }}
           {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi

@@ -11,7 +11,7 @@ Cevaplarınızın kısa, somut ve teknik kararlarınızı açıklayacak düzeyde
 - **Ad Soyad:** Emre Arabacıoğlu
 - **Repository adresi:** https://github.com/emrearabacioglu/devops-case
 - **Çalışmanın tamamlandığı tarih:** 13/09/2026
-- **Kullanılan hedef ortam:** Cloud
+- **Kullanılan hedef ortam:** AWS
 
 ---
 
@@ -165,7 +165,7 @@ Trafik 10 kat arttığında ilk darboğazın nerede oluşmasını beklersiniz?
 Hangi bileşenleri, hangi metriklere ve eşiklere göre ölçeklersiniz? Veritabanı bağlantıları, kaynak kullanımı ve bağımlı servisleri nasıl değerlendirirsiniz?
 
 **Cevap:** Trafik 10 kat arttığında ilk darboğazın Backend (Node.js) Event Loop işlemci limitlerinde ve MongoDB Connection Pool (bağlantı havuzu) tükenmesinde oluşması beklenir.
-Ölçekleme için Kubernetes HPA (Horizontal Pod Autoscaler) devreye alınarak CPU %70 eşiğini geçtiğinde backend pod sayısı yatayda artırılır. Database tarafında read yükü artacağı için MongoDB Replica Set kurularak okuma istekleri bu node'lara dağıtılır.
+Ölçekleme için Kubernetes HPA devreye alınarak CPU %70 eşiğini geçtiğinde backend pod sayısı artırılır. Database tarafında read yükü artacağı için MongoDB Replica Set kurularak okuma istekleri bu node'lara dağıtılır.
 
 ---
 
@@ -175,8 +175,11 @@ Hangi logları, metrikleri ve alarmları oluşturdunuz?
 
 Bir incident sırasında problemi teşhis etmek için ilk olarak hangi dashboard, log, metrik veya alarm kayıtlarını incelersiniz?
 
-**Cevap:** EKS cluster üzerinde AWS CloudWatch logları ve pod bazında stdout/stderr logları (`kubectl logs`) izlenmektedir. Ayrıca Jenkins pipeline failure durumlarında konsola log basacak post-action kurgulanmıştır. Bir incident anında problemi teşhis etmek için ilk olarak Ingress Controller loglarındaki HTTP 5xx hata oranlarına ve endpoint bağlantı kopmalarına bakarım. Ardından çöken Backend veya ETL pod'unun uygulama loglarını incelerim.
+**Cevap:**
 
+Tüm bileşenler stdout/stderr'e log yazar, bu sayede loglar `kubectl logs` ile erişilebilir ve ileride merkezi bir toplayıcıya yönlendirilebilir. ETL loglarını `logging` modülüne taşıyarak zaman damgası, seviye ve her repository için `INSERTED`/`UPDATED` ayrımı ekledim; ayrıca `raise_for_status()` ile API hatalarında Job'ın `Failed` olarak işaretlenmesini sağladım. Alarm tarafında `monitoring/prometheus-rules.yaml` içinde dört `PrometheusRule` tanımladım: `BackendUnavailable`, `MongoDBUnavailable` (ikisi de critical, 2 dk) ve `ETLJobFailed`, `ETLNoSuccessfulRun` (warning).
+
+İncident sırasında önce hangi alarmın tetiklendiğine bakarım, çünkü bu katmanı söyler: MongoDB ve backend birlikte yanıyorsa kök neden veritabanındadır. Ardından `kubectl describe pod` ve `kubectl logs --previous` ile çökme sebebini incelerim; alarm zamanı son Jenkins deploy'u ile örtüşüyorsa teşhisten önce `helm rollback` ile servisi ayağa kaldırırım. Alarm bazında izlenecek adımlar `docs/alerting.md` runbook'unda yazılıdır.
 ---
 
 ## 14. Güvenlik Riskleri

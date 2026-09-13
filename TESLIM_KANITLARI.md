@@ -58,7 +58,7 @@ Aynı repository tekrar işlendiğinde duplicate kayıt oluşmadığını ve mev
 ## 5. CI/CD
 
 - **Başarılı pipeline görseli:** `docs/screenshots/12-cicd-pipeline-success.png`
-- **Build/image/deployment aşamalarını gösteren görsel:** `docs/screenshots/...`
+- **Build/image/deployment aşamalarını gösteren görsel:** `docs/screenshots/06-docker-build-and-containers.png`
 - **Açıklama:** 
 
 ## 6. Backup ve Restore
@@ -106,8 +106,8 @@ Aşağıdaki altı adımın tamamı kanıtlanmalıdır. Adımların aynı kayıt
 
 Uyguladığınız logging, monitoring, alarm, Helm, Terraform, güvenlik taraması veya diğer üst kriterlere ait kanıtları ekleyin.
 
-- **Görsel:** `docs/screenshots/...`
-- **Açıklama:**
+- **Görsel:** `docs/screenshots/19-monitoring-or-upper-criteria.png`
+- **Açıklama:** ETL CronJob'ının manuel tetiklenen koşumunun log çıktısı. Her repository için INSERTED/UPDATED ayrımı ve sondaki özet satırı, aynı repository tekrar işlendiğinde yeni kayıt oluşturulmadığını, mevcut kaydın github_id üzerinden güncellendiğini gösterir.
 
 ## 8. Ek Kanıtlar
 
