@@ -98,12 +98,11 @@ pipeline {
                         // 2. Cypress, K8s üzerindeki canlı Ingress sistemini test eder
                         sh '''
                         echo 'FROM cypress/included:12.12.0' > Dockerfile.test
+                        echo 'ENV REACT_APP_API_URL=http://localhost:5050' >> Dockerfile.test
                         echo 'WORKDIR /app' >> Dockerfile.test
                         echo 'COPY . .' >> Dockerfile.test
                         echo 'RUN npm install' >> Dockerfile.test
-                        echo 'ENV REACT_APP_API_URL=http://localhost:5050' >> Dockerfile.test
                         echo 'ENTRYPOINT ["sh", "-c", "CI=true BROWSER=none npm run start & sleep 10 && npx update-browserslist-db@latest && npx cypress run"]' >> Dockerfile.test
-                        
                         docker build -t temp-cypress-test -f Dockerfile.test .
                         docker run --rm --network host temp-cypress-test
                         '''
