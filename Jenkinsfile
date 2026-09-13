@@ -22,31 +22,6 @@ pipeline {
             }
         }
 
-        stage('Cypress Test') {
-            steps {
-                sh 'docker compose up -d --build'
-                sh 'sleep 20'
-                
-                dir('mern-project/client') {
-                    sh '''
-                    echo 'FROM cypress/included:12.12.0' > Dockerfile.test
-                    echo 'WORKDIR /app' >> Dockerfile.test
-                    echo 'COPY . .' >> Dockerfile.test
-                    echo 'RUN npm install' >> Dockerfile.test
-                    echo 'ENTRYPOINT ["npx", "cypress", "run"]' >> Dockerfile.test
-                    
-                    docker build -t temp-cypress-test -f Dockerfile.test .
-                    docker run --rm --network host temp-cypress-test
-                    '''
-                }
-            }
-            post {
-                always {
-                    sh 'docker compose down -v'
-                    sh 'docker rmi temp-cypress-test || true'
-                }
-            }
-        }
 
         stage('Cypress Test') {
             steps {
