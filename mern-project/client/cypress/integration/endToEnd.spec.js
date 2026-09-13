@@ -12,6 +12,9 @@ describe("Web site availability", () => {
     cy.get("#position").type("Position1");
     cy.get("#positionIntern").click({ force: true });
     cy.contains("Create person").click({ force: true });
+
+    cy.wait(3000); //API requestinin DBye yazilmasi icin bekleme
+
     cy.visit("http://localhost:3000");
     cy.contains("Employee1").should("exist");
   });
