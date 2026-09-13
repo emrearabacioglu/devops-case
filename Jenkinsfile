@@ -101,6 +101,7 @@ pipeline {
                         echo 'WORKDIR /app' >> Dockerfile.test
                         echo 'COPY . .' >> Dockerfile.test
                         echo 'RUN npm install' >> Dockerfile.test
+                        echo 'ENV REACT_APP_API_URL=http://localhost:5050' >> Dockerfile.test
                         echo 'ENTRYPOINT ["sh", "-c", "CI=true BROWSER=none npm run start & sleep 10 && npx update-browserslist-db@latest && npx cypress run"]' >> Dockerfile.test
                         
                         docker build -t temp-cypress-test -f Dockerfile.test .
