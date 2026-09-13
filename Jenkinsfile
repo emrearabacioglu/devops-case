@@ -26,8 +26,11 @@ pipeline {
 
         stage('Cypress Test') {
             steps {
-                sh 'docker compose up -d mongodb backend'
+                sh 'docker compose up -d mongodb '
                 sh 'sleep 15'
+
+                sh 'docker compose up -d backend'
+                sh 'sleep 10'
                 
                 dir('mern-project/client') {
                     sh '''
