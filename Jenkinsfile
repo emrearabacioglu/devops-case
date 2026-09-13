@@ -24,11 +24,13 @@ pipeline {
 
 
 
-        stage('Cypress Test') {
+        stage('Automated Tests (E2E Cypress)') {
             steps {
-                sh 'docker compose up -d mongodb '
+                // 1. Önce SADECE MongoDB'yi ayağa kaldır ve tam hazır olması için bekle
+                sh 'docker compose up -d mongodb'
                 sh 'sleep 15'
-
+                
+                // 2. MongoDB hazır olduktan sonra Backend'i kaldır ki process.exit(1) ile çökmesin!
                 sh 'docker compose up -d backend'
                 sh 'sleep 10'
                 
@@ -39,19 +41,21 @@ pipeline {
                     echo 'COPY . .' >> Dockerfile.test
                     echo 'RUN npm install' >> Dockerfile.test
                     
-                    echo 'ENV REACT_APP_API_URL=http://backend-service:5050' >> Dockerfile.test
+                    # Cypress tarayıcısının Backend'i bulabilmesi için adresi localhost yapıyoruz
+                    echo 'ENV REACT_APP_API_URL=http://localhost:5050' >> Dockerfile.test
                     
                     echo 'ENTRYPOINT ["sh", "-c", "npm start & sleep 20 && npx cypress run"]' >> Dockerfile.test
                     
                     docker build -t temp-cypress-test -f Dockerfile.test .
                     
-                    docker run --rm --network devops_case_default temp-cypress-test
+                    # Host ağı kullanılarak localhost:5050'nin Jenkins üzerinden doğrudan Backend'e ulaşması garanti ediliyor
+                    docker run --rm --network host temp-cypress-test
                     '''
                 }
             }
             post {
                 always {
-                    sh 'docker compose down -v'
+                    sh 'docker compose down -v || true'
                     sh 'docker rmi temp-cypress-test || true'
                 }
             }
