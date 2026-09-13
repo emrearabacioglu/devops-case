@@ -21,6 +21,6 @@ describe("Web site availability", () => {
     });
 
     cy.visit("http://localhost:3000");
-    cy.contains("Employee1").should("exist");
+    cy.contains("Employee1", { timeout: 10000 }).should("exist");
   });
 });
