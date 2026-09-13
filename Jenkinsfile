@@ -32,7 +32,7 @@ pipeline {
 
                 // 2. Backend'i ayaga kaldir ve istek karsilar hale gelene kadar bekle
                 sh 'docker compose up -d backend'
-                sh './scripts/wait-for-http.sh http://localhost:5050/record'
+                sh './scripts/wait-for-http.sh backend http://localhost:5050/record'
 
                 // 3. Cypress testlerini calistir (Dockerfile.test repo'da versiyonlu duruyor)
                 dir('mern-project/client') {
