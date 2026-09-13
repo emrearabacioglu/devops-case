@@ -13,7 +13,7 @@ describe("Web site availability", () => {
     cy.get("#positionIntern").click({ force: true });
     cy.contains("Create person").click({ force: true });
 
-    cy.wait(3000); //API requestinin DBye yazilmasi icin bekleme
+    cy.wait(3000); //API requestinin DBye yazilmasi icin eklenen delay
 
     cy.visit("http://localhost:3000");
     cy.contains("Employee1").should("exist");
