@@ -75,7 +75,7 @@ pipeline {
                 sh "helm repo update"
                 sh "helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-basic --create-namespace --wait"
 
-                sh "helm upgrade --install mern-${params.ENV_NAME} ./mern-stack-chart --namespace ${params.ENV_NAME} --create-namespace -f ./mern-stack-chart/values-${params.ENV_NAME}.yaml --set frontend.image.tag=${IMAGE_TAG} --set backend.image.tag=${IMAGE_TAG} --set etl.image.tag=${IMAGE_TAG} --wait --atomic --timeout 5m"
+                sh "helm upgrade --install mern-${params.ENV_NAME} ./mern-stack-chart --namespace ${params.ENV_NAME} --create-namespace -f ./mern-stack-chart/values-${params.ENV_NAME}.yaml --set frontend.image.tag=${IMAGE_TAG} --set backend.image.tag=${IMAGE_TAG} --set etl.image.tag=${IMAGE_TAG} --wait --atomic --timeout 10m"
             }
         }
 
@@ -129,7 +129,7 @@ pipeline {
                     archiveArtifacts artifacts: 'cypress-results/**', allowEmptyArchive: true
                 }
                 failure {
-                    sh "helm rollback mern-${params.ENV_NAME} -n ${params.ENV_NAME} --wait --timeout 10m || echo 'rollback skipped'"
+                    sh "helm rollback mern-${params.ENV_NAME} -n ${params.ENV_NAME} --wait --timeout 5m || echo 'rollback skipped'"
                 }
             }
         }
