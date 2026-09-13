@@ -28,7 +28,7 @@ pipeline {
                 sh 'sleep 20'
                 
                 dir('mern-project/client') {
-                    sh "docker run --rm --network host -v \${PWD}:/app -w /app cypress/included:12.12.0 sh -c 'npm install && npx cypress run'"
+                    sh 'docker run --rm --network host --entrypoint="" -v ${PWD}:/app -w /app cypress/included:12.12.0 sh -c "npm install && npx cypress run"'
                 }
             }
             post {
