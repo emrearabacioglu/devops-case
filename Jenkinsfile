@@ -90,18 +90,18 @@ pipeline {
         stage('Automated Tests (E2E Cypress)') {
             steps {
                 script {
-                    // 1. EKS'teki AWS Ingress Controller'ı test için anında Jenkins'in 3000 portuna tünelliyoruz
+                    // 1. EKS'teki AWS Ingress Controllerı test için  Jenkinsin 3000 portuna tünelledik
                     sh 'kubectl port-forward -n ingress-basic svc/ingress-nginx-controller 3000:80 > /dev/null 2>&1 & echo $! > pf.pid'
                     sh 'sleep 10'
                     
                     dir('mern-project/client') {
-                        // 2. Cypress, doğrudan K8s üzerindeki canlı Ingress sistemini test eder (docker-compose yok!)
+                        // 2. Cypress, K8s üzerindeki canlı Ingress sistemini test eder
                         sh '''
                         echo 'FROM cypress/included:12.12.0' > Dockerfile.test
                         echo 'WORKDIR /app' >> Dockerfile.test
                         echo 'COPY . .' >> Dockerfile.test
                         echo 'RUN npm install' >> Dockerfile.test
-                        echo 'ENTRYPOINT ["npx", "cypress", "run"]' >> Dockerfile.test
+                        echo 'ENTRYPOINT ["sh", "-c", "CI=true BROWSER=none npm start & sleep 20 && npx cypress run"]' >> Dockerfile.test
                         
                         docker build -t temp-cypress-test -f Dockerfile.test .
                         docker run --rm --network host temp-cypress-test
