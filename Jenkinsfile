@@ -119,6 +119,7 @@ pipeline {
             post {
                 always {
                     sh """
+                        rm -rf cypress-results
                         mkdir -p cypress-results
                         docker cp e2e-${BUILD_NUMBER}:/e2e/cypress/videos      ./cypress-results/ || true
                         docker cp e2e-${BUILD_NUMBER}:/e2e/cypress/screenshots ./cypress-results/ || true
