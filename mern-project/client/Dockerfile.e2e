@@ -1,0 +1,4 @@
+FROM cypress/included:4.12.1
+WORKDIR /e2e
+COPY cypress.json ./
+COPY cypress ./cypress

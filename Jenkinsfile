@@ -108,21 +108,24 @@ pipeline {
                     echo "Application did not become reachable in time."; exit 1
                 """
 
+                sh "docker build -t devops-case-e2e:${IMAGE_TAG} -f ./mern-project/client/Dockerfile.e2e ./mern-project/client"
+
                 sh """
-                    docker run --rm --ipc=host \\
-                      -v "${env.WORKSPACE}/mern-project/client":/e2e \\
-                      -w /e2e \\
+                    docker run --name e2e-${BUILD_NUMBER} --ipc=host \\
                       -e CYPRESS_baseUrl=http://${env.APP_URL} \\
-                      cypress/included:4.12.1
+                      devops-case-e2e:${IMAGE_TAG}
                 """
             }
             post {
                 always {
                     sh """
-                        docker run --rm -v "${env.WORKSPACE}":/w alpine:3.20 \\
-                          chown -R \$(id -u):\$(id -g) /w/mern-project/client || true
+                        mkdir -p cypress-results
+                        docker cp e2e-${BUILD_NUMBER}:/e2e/cypress/videos      ./cypress-results/ || true
+                        docker cp e2e-${BUILD_NUMBER}:/e2e/cypress/screenshots ./cypress-results/ || true
+                        docker rm -f e2e-${BUILD_NUMBER} || true
+                        docker rmi devops-case-e2e:${IMAGE_TAG} || true
                     """
-                    archiveArtifacts artifacts: 'mern-project/client/cypress/videos/**, mern-project/client/cypress/screenshots/**', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'cypress-results/**', allowEmptyArchive: true
                 }
                 failure {
                     sh "helm rollback mern-${params.ENV_NAME} -n ${params.ENV_NAME} --wait --timeout 5m || echo 'rollback skipped'"
