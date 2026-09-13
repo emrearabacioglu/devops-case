@@ -86,6 +86,37 @@ pipeline {
                 sh "kubectl get pods -n ${params.ENV_NAME} -l app.kubernetes.io/instance=mern-${params.ENV_NAME}"
             }
         }
+
+        stage('Automated Tests (E2E Cypress)') {
+            steps {
+                script {
+                    // 1. EKS'teki AWS Ingress Controller'ı test için anında Jenkins'in 3000 portuna tünelliyoruz
+                    sh 'kubectl port-forward -n ingress-basic svc/ingress-nginx-controller 3000:80 > /dev/null 2>&1 & echo $! > pf.pid'
+                    sh 'sleep 10'
+                    
+                    dir('mern-project/client') {
+                        // 2. Cypress, doğrudan K8s üzerindeki canlı Ingress sistemini test eder (docker-compose yok!)
+                        sh '''
+                        echo 'FROM cypress/included:12.12.0' > Dockerfile.test
+                        echo 'WORKDIR /app' >> Dockerfile.test
+                        echo 'COPY . .' >> Dockerfile.test
+                        echo 'RUN npm install' >> Dockerfile.test
+                        echo 'ENTRYPOINT ["npx", "cypress", "run"]' >> Dockerfile.test
+                        
+                        docker build -t temp-cypress-test -f Dockerfile.test .
+                        docker run --rm --network host temp-cypress-test
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    // 3. Test bittiğinde K8s port-forward tünelini kapat ve geçici imajı sil
+                    sh 'kill $(cat pf.pid) || true'
+                    sh 'docker rmi temp-cypress-test || true'
+                }
+            }
+        }
     }
     
     post {
