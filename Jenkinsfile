@@ -48,6 +48,34 @@ pipeline {
             }
         }
 
+        stage('Cypress Test') {
+            steps {
+                // Sadece veritabanı ve backend'i ayağa kaldırıyoruz. NGINX (frontend) imajını pas geçiyoruz.
+                sh 'docker compose up -d mongodb backend'
+                sh 'sleep 15'
+                
+                dir('mern-project/client') {
+                    sh '''
+                    echo 'FROM cypress/included:12.12.0' > Dockerfile.test
+                    echo 'WORKDIR /app' >> Dockerfile.test
+                    echo 'COPY . .' >> Dockerfile.test
+                    echo 'RUN npm install' >> Dockerfile.test
+
+                    echo 'ENTRYPOINT ["sh", "-c", "npm start & sleep 20 && npx cypress run"]' >> Dockerfile.test
+                    
+                    docker build -t temp-cypress-test -f Dockerfile.test .
+                    docker run --rm --network host temp-cypress-test
+                    '''
+                }
+            }
+            post {
+                always {
+                    sh 'docker compose down -v'
+                    sh 'docker rmi temp-cypress-test || true'
+                }
+            }
+        }
+
         stage('Parallel Build & Push') {
             failFast true
             parallel {
