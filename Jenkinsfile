@@ -101,7 +101,7 @@ pipeline {
                         echo 'WORKDIR /app' >> Dockerfile.test
                         echo 'COPY . .' >> Dockerfile.test
                         echo 'RUN npm install' >> Dockerfile.test
-                        echo 'ENTRYPOINT ["sh", "-c", "CI=true BROWSER=none npm start & sleep 20 && npx cypress run"]' >> Dockerfile.test
+                        echo 'ENTRYPOINT ["sh", "-c", "CI=true BROWSER=none npm run start & sleep 20 && npm run cypress"]' >> Dockerfile.test
                         
                         docker build -t temp-cypress-test -f Dockerfile.test .
                         docker run --rm --network host temp-cypress-test
