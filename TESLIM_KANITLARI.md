@@ -13,8 +13,8 @@ Ekran görüntülerinde gerçek credential, token, parola, private key veya hass
 
 ### 1.2 Create işlemi
 
-- **Form görseli:** `docs/screenshots/...`
-- **Başarılı sonuç görseli:** `docs/screenshots/02-record-create-form.png`
+- **Form görseli:** `docs/screenshots/02-record-create-form.png`
+- **Başarılı sonuç görseli:** `docs/screenshots/03-record-created.png`
 - **Açıklama:** Arayüz üzerinden yeni bir kayıt oluşturulmuş ve Backend üzerinden MongoDB'ye başarılı bir şekilde yazılarak listeye düşmesi doğrulanmıştır.
 
 ### 1.3 Edit işlemi
