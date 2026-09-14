@@ -1,4 +1,4 @@
-# Mimari Diyagram
+# Mimari Diyagram / Architecture Diagram
 
 Aşağıdaki diyagram Mermaid formatındadır ve bu dosyanın kendisi düzenlenebilir
 kaynak dosyasıdır. GitHub üzerinde doğrudan render edilir.
@@ -7,13 +7,13 @@ kaynak dosyasıdır. GitHub üzerinde doğrudan render edilir.
 
 ```mermaid
 flowchart TB
-    user["Kullanici<br/>(Tarayici)"]
-    github["GitHub API<br/>(harici servis)"]
-    jenkins["Jenkins<br/>(harici sunucu)"]
+    user["User<br/>(Browser)"]
+    github["GitHub API<br/>(external service)"]
+    jenkins["Jenkins<br/>(external server)"]
     dockerhub["Docker Hub"]
 
     subgraph aws["AWS / eu-central-1 - VPC (Terraform)"]
-        elb["Elastic Load Balancer<br/>(Classic LB)<br/>TEK DIS ERISIM NOKTASI"]
+        elb["Elastic Load Balancer<br/>(Classic LB)<br/>ONLY PUBLIC ENTRY POINT"]
         nat["NAT Gateway"]
 
         subgraph eks["EKS Cluster"]
@@ -24,11 +24,11 @@ flowchart TB
             subgraph nsdev["namespace: dev"]
                 ing["Ingress<br/>path-based routing"]
                 fe["Frontend Deployment<br/>nginx-unprivileged :8080<br/>Service: ClusterIP"]
-                be["Backend Deployment<br/>Node.js/Express :5050<br/>Service: ClusterIP"]
+                be["Backend Deployment<br/>Node.js / Express :5050<br/>Service: ClusterIP"]
                 mongo["MongoDB StatefulSet<br/>:27017<br/>Service: ClusterIP"]
                 pvcdata[("PVC: data<br/>gp2 / EBS 5Gi")]
-                etl["ETL CronJob<br/>saatte bir"]
-                bkp["Backup CronJob<br/>gunluk 02:00"]
+                etl["ETL CronJob<br/>hourly"]
+                bkp["Backup CronJob<br/>daily 02:00 UTC"]
                 pvcbkp[("PVC: mongodb-backup<br/>gp2 / EBS 5Gi")]
             end
         end
@@ -41,17 +41,17 @@ flowchart TB
     ing -->|"/record, /healthcheck"| be
     be -->|"mongodb://mern-dev-mongodb:27017"| mongo
     mongo --- pvcdata
-    etl -->|yazma| mongo
-    etl -->|"HTTPS (cikis)"| nat
+    etl -->|write| mongo
+    etl -->|"HTTPS egress"| nat
     nat --> github
     bkp -->|mongodump| mongo
     bkp --> pvcbkp
 
     jenkins -->|"docker build / push"| dockerhub
     jenkins -->|"helm upgrade"| eks
-    fe -.->|"imaj cekme"| dockerhub
-    be -.->|"imaj cekme"| dockerhub
-    etl -.->|"imaj cekme"| dockerhub
+    fe -.->|"image pull"| dockerhub
+    be -.->|"image pull"| dockerhub
+    etl -.->|"image pull"| dockerhub
 
     classDef ext fill:#f5f5f5,stroke:#999,stroke-dasharray:4
     classDef entry fill:#ffe6e6,stroke:#c33,stroke-width:2px
