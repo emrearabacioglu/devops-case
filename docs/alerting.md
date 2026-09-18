@@ -6,30 +6,34 @@ Tum bilesenler stdout/stderr'e log yazar (12-factor); container icine veya
 dosyaya log yazilmaz. Boylece loglar hem `kubectl logs` ile hem de merkezi
 bir log toplayici (Fluent Bit / CloudWatch Logs) ile toplanabilir.
 
+Chart, pod'lari `app: <release>-<bilesen>` etiketiyle isaretler; asagidaki
+komutlar `dev` ortami (release adi `mern-dev`) icin yazilmistir.
+
 | Bilesen | Komut |
 |---------|-------|
 | Frontend | `kubectl logs -n dev deploy/mern-dev-frontend -f` |
 | Backend | `kubectl logs -n dev deploy/mern-dev-backend -f` |
-| MongoDB | `kubectl logs -n dev -l app=mongodb -f` |
-| ETL (son kosum) | `kubectl logs -n dev -l job-name=$(kubectl get jobs -n dev -o jsonpath='{.items[-1:].metadata.name}')` |
+| MongoDB | `kubectl logs -n dev -l app=mern-dev-mongodb -f` |
+| ETL (son kosum) | `kubectl logs -n dev -l job-name=$(kubectl get jobs -n dev --sort-by=.metadata.creationTimestamp -o jsonpath='{.items[-1:].metadata.name}')` |
 | Crash sonrasi onceki kosum | `kubectl logs -n dev <pod> --previous` |
 
 ### ETL log formati
 
 ETL, Python `logging` modulu ile zaman damgali ve seviyeli log basar:
 
-    2026-09-13 21:04:11 INFO [etl] Sending API request to: https://api.github.com/users/emrearabacioglu/repos
-    2026-09-13 21:04:12 INFO [etl] Fetched 23 repositories from GitHub API
-    2026-09-13 21:04:12 INFO [etl] INSERTED new repo: devops-case (github_id=812345678)
-    2026-09-13 21:04:13 INFO [etl] UPDATED existing repo: java-maven-app (github_id=798765432)
-    2026-09-13 21:04:13 INFO [etl] ETL run completed. Inserted: 1, Updated: 22, Total: 23
+    2026-09-13T21:04:11 INFO [etl] Sending API request to: https://api.github.com/users/emrearabacioglu/repos
+    2026-09-13T21:04:12 INFO [etl] Fetched 11 repositories from GitHub API
+    2026-09-13T21:04:12 INFO [etl] INSERTED new repo: devops-case (github_id=812345678)
+    2026-09-13T21:04:13 INFO [etl] UPDATED existing repo: java-maven-app (github_id=798765432)
+    2026-09-13T21:04:13 INFO [etl] ETL run completed. Inserted: 1, Updated: 10, Total: 11
 
 Her repo icin INSERTED/UPDATED ayrimi basilir; ayni repo tekrar islendiginde
-yeni kayit olusmadiginin dogrudan kanitidir (bkz. CASE_END_ANSWERS.md Soru 15).
+yeni kayit olusmadiginin dogrudan kanitidir (bkz. `CASE_SONU_CEVAPLARI.md`
+Soru 15 ve `TESLIM_KANITLARI.md` bolum 4.2).
 
-GitHub API hata donerse `raise_for_status()` istisna firlatir, script 1 exit
-code ile durur ve Job "Failed" olarak isaretlenir. Bu, ETLJobFailed alarminin
-calisabilmesinin on sartidir.
+GitHub API hata donerse `raise_for_status()` istisna firlatir, script sifirdan
+farkli exit code ile durur ve Job "Failed" olarak isaretlenir. Bu, ETLJobFailed
+alarminin calisabilmesinin on sartidir.
 
 ## 2. Alarmlar
 
@@ -43,6 +47,12 @@ Kurallar `monitoring/prometheus-rules.yaml` icinde Prometheus Operator
 | ETLJobFailed | ETL Job'i hata ile bitti | 1 dk | warning |
 | ETLNoSuccessfulRun | 2 saattir basarili ETL kosumu yok | 10 dk | warning |
 
+Kurallar `kube-state-metrics`'in urettigi metrikler uzerine yazilmistir
+(`kube_deployment_status_replicas_available`, `kube_pod_status_ready`,
+`kube_job_status_failed`, `kube_job_status_completion_time`); bu metrikler
+`kube-prometheus-stack` ile birlikte gelir. Uygulama ici metrik (custom
+instrumentation) bu kapsamda eklenmemistir.
+
 ### Esik gerekceleri
 
 - **2 dakika (backend/mongo):** rolling update sirasinda pod'lar kisa sureli
@@ -54,11 +64,18 @@ Kurallar `monitoring/prometheus-rules.yaml` icinde Prometheus Operator
 
 ### Devreye alma
 
+Monitoring yigini bu ortamda pipeline'in parcasi olarak degil, asagidaki
+komutlarla elle kurulmustur:
+
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
     helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
       --namespace monitoring --create-namespace --wait
     kubectl apply -f monitoring/prometheus-rules.yaml
     kubectl get prometheusrule -n monitoring
+
+`PrometheusRule` kaynagindaki `release: monitoring` label'i, Prometheus
+Operator'un kurali toplamasi icin gereklidir; Helm release adi degistirilirse
+bu label da guncellenmelidir.
 
 Dogrulama: `kubectl port-forward -n monitoring svc/monitoring-kube-prometheus-prometheus 9090:9090`
 -> http://localhost:9090/alerts
@@ -94,20 +111,29 @@ mount edilir.
 ## 3. Alarm tetiklendiginde ne yapilir
 
 ### BackendUnavailable
-1. `kubectl get pods -n dev -l app=backend`
-2. `kubectl describe pod` - OOMKilled / ImagePullBackOff / probe hatasi?
-3. `kubectl logs deploy/mern-dev-backend --previous`
-4. MongoDB de down ise once MongoDBUnavailable ele alinir (kok neden orada)
-5. Son deploy sonrasi basladiysa: `helm rollback mern-dev -n dev`
+1. `kubectl get pods -n dev -l app=mern-dev-backend`
+2. `kubectl describe pod -n dev -l app=mern-dev-backend` - OOMKilled /
+   ImagePullBackOff / CrashLoopBackOff?
+3. `kubectl logs -n dev deploy/mern-dev-backend --previous`
+4. MongoDB de down ise once MongoDBUnavailable ele alinir (kok neden orada).
+   Backend, DB'ye baglanamadiginda `process.exit(1)` ile kapandigi icin
+   MongoDB kesintisi dogrudan backend alarmi da uretir; iki alarm birlikte
+   yaniyorsa tek bir kok neden aranmalidir.
+5. Son deploy sonrasi basladiysa: `helm rollback mern-dev -n dev --wait`,
+   ardindan `helm history mern-dev -n dev` ile dogrulama.
 
 ### MongoDBUnavailable
-1. `kubectl describe pod -n dev -l app=mongodb` - PVC mount / disk dolu mu?
+1. `kubectl describe pod -n dev -l app=mern-dev-mongodb` - PVC mount /
+   disk dolu mu?
 2. `kubectl get pvc -n dev` - PVC Bound mu?
-3. Veri kaybi suphesi varsa docs/backup-restore.md izlenir
+3. `kubectl get events -n dev --sort-by=.lastTimestamp` - node tahliyesi,
+   scheduling hatasi?
+4. Veri kaybi suphesi varsa `docs/backup-restore.md` izlenir.
 
 ### ETLJobFailed
 1. `kubectl logs -n dev -l job-name=<job>` - ERROR satiri
-2. GitHub 403 -> rate limit; GITHUB_TOKEN Secret'i kontrol edilir
+2. GitHub 403 -> rate limit; kimliksiz istek limiti saatte 60'tir.
+   Kalici cozum bir `GITHUB_TOKEN` Secret'i ile kimlikli istek atmaktir.
 3. MongoDB baglanti hatasi -> MongoDBUnavailable ile birlikte degerlendirilir
 4. Manuel tetikleme: `kubectl create job --from=cronjob/mern-dev-etl-job etl-manual -n dev`
 
@@ -115,14 +141,21 @@ mount edilir.
 1. `kubectl get cronjob -n dev` - SUSPEND=True mi, LAST SCHEDULE ne zaman?
 2. `kubectl get jobs -n dev` - Job olusuyor ama pod mu zamanlanamiyor?
 3. `kubectl describe node` - kaynak yetersizligi
+4. `concurrencyPolicy: Forbid` oldugu icin, asili kalan bir onceki Job yeni
+   kosumlari engelliyor olabilir; asili Job silinir.
 
 ## 4. Kapsam disi birakilanlar
 
 - **Merkezi log toplama** (Fluent Bit -> CloudWatch Logs / Loki) kurulmadi;
   loglar yalnizca `kubectl logs` ile erisiliyor ve pod silindiginde kaybolur.
   Production'da ilk eklenecek bilesen budur.
+- **Monitoring yigini pipeline'a bagli degil;** `kube-prometheus-stack` elle
+  kuruluyor. Production'da bu da IaC/pipeline ile yonetilmelidir.
 - **Alertmanager receiver'i canliya baglanmadi;** harici bir Slack/PagerDuty
   hedefi olmadigi icin kural ve routing tanimlari calistirilabilir sekilde
   repoda birakildi.
+- **Uygulama ici metrikler yok;** istek sayisi, p95 gecikme ve hata orani gibi
+  RED metrikleri icin backend'in Prometheus client ile enstrumante edilmesi
+  gerekir. Mevcut alarmlar yalnizca platform seviyesindedir.
 - **SLO/SLI ve error budget** tanimlanmadi; anlamli trafik gecmisi olmadigi
   icin esikler deneyimsel secildi.
