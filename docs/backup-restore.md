@@ -24,6 +24,8 @@ Kanıt ekran görüntüleri `TESLIM_KANITLARI.md` (TR) / `SUBMISSION_EVIDENCE.md
 | RPO | 24 saat (günlük yedek; en kötü senaryoda son 24 saatin verisi kaybedilir) | Senaryoda 0 — yedek, silme işleminden hemen önce manuel alındı |
 | RTO | 15 dakika | **0m1.490s** (`time ./scripts/mongo-restore.sh` ile ölçüldü) |
 
+> Ölçülen RTO, mevcut veri hacminin çok küçük olması (4.0K arşiv) nedeniyle hedefin belirgin şekilde altındadır. Geri yükleme süresi veri hacmiyle birlikte doğrusal olarak büyüyeceğinden, RTO hedefi üretim benzeri bir veri hacmiyle yeniden ölçülmelidir.
+
 ## 3. Yedek alma adımları / Backup procedure
 
 ```bash
@@ -57,7 +59,11 @@ cd ~/DevOps_Case
 # 1. Mevcut yedekleri listele
 ls -lh backups/
 
-# 2. Seçilen yedekten geri yükle
+# 2. Arşiv bütünlüğünü doğrula (bkz. bölüm 5a) - veriye dokunmaz
+kubectl exec -i -n dev mern-dev-mongodb-0 -- \
+  mongorestore --archive --gzip --dryRun --verbose < ./backups/mongodb-YYYYMMDD-HHMMSS.archive.gz
+
+# 3. Seçilen yedekten geri yükle
 ./scripts/mongo-restore.sh ./backups/mongodb-YYYYMMDD-HHMMSS.archive.gz
 
 # Script'in yaptığı iş:
@@ -67,7 +73,7 @@ ls -lh backups/
 #   --drop bayrağı, geri yüklemeden önce hedef collection'ı siler;
 #   böylece restore sonrası duplicate kayıt oluşmaz.
 
-# 3. Doğrula
+# 4. Doğrula
 kubectl exec -n dev mern-dev-mongodb-0 -- mongosh --quiet --eval \
   'print("records count:", db.getSiblingDB("sample_training").records.countDocuments())'
 ```
@@ -85,7 +91,9 @@ kubectl exec -i -n dev mern-dev-mongodb-0 -- \
   mongorestore --archive --gzip --dryRun --verbose < ./backups/mongodb-YYYYMMDD-HHMMSS.archive.gz
 ```
 
-Başarılı bir `--dryRun`, arşivin okunabilir ve tutarlı olduğunu; hangi veritabanı ve collection'ların içerdiğini gösterir. Bozuk veya yarım kalmış bir arşiv bu aşamada hata verir.
+Başarılı bir `--dryRun`, arşivin okunabilir ve tutarlı olduğunu; hangi veritabanı ve collection'ları içerdiğini gösterir. Bozuk veya yarım kalmış bir arşiv bu aşamada hata verir.
+
+> Bu adım bilinçli olarak `scripts/mongo-restore.sh` içine gömülmemiştir; restore script'i tek işi yapan ve çıktısı öngörülebilir bir araç olarak bırakılmış, doğrulama operatörün restore öncesi bilerek çalıştıracağı ayrı bir adım olarak tanımlanmıştır. Otomatik restore doğrulaması bölüm 7'de teknik borç olarak listelenmiştir.
 
 **b) Geri yükleme sonrası — kayıt sayısı ve arayüz.** Collection'daki belge sayısı yedek öncesi değerle karşılaştırılır ve uygulamanın Record List sayfasında kayıtların eksiksiz render edildiği gözlemlenir:
 
@@ -109,9 +117,11 @@ Senaryo `dev` ortamında (`sample_training` veritabanı, `records` collection'ı
 
 ## 7. Bilinen sınırlamalar / Known limitations
 
+- **Zamanlanmış yedek yalnızca `dev` ortamını kapsıyor.** `k8s/backup/mongodb-backup-cronjob.yaml` Helm chart'ının dışındadır; `namespace: dev` ve `--host mern-dev-mongodb` değerleri sabit yazılmıştır ve pipeline tarafından değil elle `kubectl apply` ile devreye alınır. Dolayısıyla `test` ve `prod` ortamlarında otomatik yedek alınmaz. Chart'a taşınıp release adı ve namespace'ten türetilmesi gerekir.
 - **Yedekler küme dışında saklanmıyor.** Zamanlanmış yedekler aynı bölgedeki bir EBS PVC'sinde, manuel yedekler operatörün makinesinde duruyor. Küme veya AZ kaybı senaryosunda yedek de kaybolur. Production'da yedekler versiyonlama ve object-lock açık bir **S3 bucket**'ına yazılmalı, yaşam döngüsü kuralı ile Glacier'a taşınmalıdır.
 - **Point-in-time recovery yok.** Günlük tam yedek alındığı için RPO 24 saattir. Production'da MongoDB oplog yedeği (`mongodump --oplog`) veya yönetilen bir servis (MongoDB Atlas / DocumentDB) ile dakikalar seviyesinde RPO hedeflenmelidir.
 - **Restore otomatik doğrulanmıyor.** Şu an doğrulama manuel yapılıyor. Production'da günlük bir Job, son yedeği tek kullanımlık bir ortama geri yükleyip kayıt sayısını kontrol eder ve başarısızlık durumunda alarm üretirdi.
+- **Yedekleme sırasında tutarlılık garantisi sınırlı.** Tek replikalı bir MongoDB'de `mongodump` çalışırken yazılan veriler için `--oplog` kullanılmadığından, yoğun yazma altında anlık tutarlılık garanti edilmez. Üretimde replica set üzerinden secondary'den yedek alınması tercih edilir.
 - **At-rest şifreleme ve ayrı IAM rolü yok.** Production'da yedekler KMS ile şifrelenmeli ve yalnızca yedekleme işlemine yetkili, en az ayrıcalıklı ayrı bir IAM rolü tanımlanmalıdır.
 - **Felaket kurtarma tatbikatı düzenli değil.** Production'da çeyrek dönemde bir DR tatbikatı yapılır, ölçülen RTO kayıt altına alınır ve hedefle karşılaştırılırdı.
 - **EBS CSI driver manuel kuruldu.** MongoDB'nin kalıcı diski için gereken `aws-ebs-csi-driver` addon'u ve `AmazonEBSCSIDriverPolicy` IAM politikası bu ortamda elle eklendi; Terraform'da `cluster_addons` bloğu ile IRSA üzerinden yönetilmesi gereken bir teknik borçtur.
